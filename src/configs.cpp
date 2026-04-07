@@ -1,6 +1,7 @@
 #include "main.h"
 #include "configs.h"
 #include "lemlib/api.hpp"
+#include "pros/motor_group.hpp"
 
 pros::Controller master(pros::E_CONTROLLER_MASTER);
 
@@ -9,11 +10,13 @@ pros::adi::DigitalOut descore('B'); //this also controlls outtake
 pros::adi::DigitalOut placeholder ('C');
 pros::adi::DigitalOut placeholder2 ('D');
 
-pros::MotorGroup left_motors({1,2,3});
-pros::MotorGroup right_motors({4,5,6});
+pros::MotorGroup left_motors({16,-17,-18});
+pros::MotorGroup right_motors({-8,9,10});
 
-pros::Imu inertial(7);
-pros::Rotation verticalEnc(6);
+pros::Imu inertial(21);
+pros::Rotation verticalEnc(20);
+
+pros::MotorGroup intake({1,-2});
 
 lemlib::TrackingWheel vertical(&verticalEnc, lemlib::Omniwheel::NEW_2, -0.75);
 
@@ -27,9 +30,9 @@ lemlib::Drivetrain drivetrain(
 );
 
 lemlib::ControllerSettings linearPid(
-    10, //kp
+    12, //kp
     0,  //ki
-    5,  //kd
+    6,  //kd
     0,  //anti windup
     0,  //small error range
     0,  //small error range timeout (ms)
@@ -40,8 +43,8 @@ lemlib::ControllerSettings linearPid(
 
 lemlib::ControllerSettings angularPid(
     10, //kp
-    0,  //ki
-    5,  //kd
+    0.03,  //ki
+    60,  //kd
     0,  //anti windup
     0,  //small error range
     0,  //small error range timeout (ms)

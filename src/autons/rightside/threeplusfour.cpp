@@ -7,20 +7,22 @@
 
 void threePlusFour(){
     chassis.setPose(0,0,0);
-    chassis.moveToPoint(8,24,700);
+    chassis.moveToPoint(16,24,700);
+    chassis.waitUntil(13.7);
+    chassis.cancelMotion();
     chassis.turnToHeading(-45,400);
-    chassis.moveToPoint(-4,36,700);
+    chassis.moveToPoint(-6,36,700);
     chassis.waitUntilDone();
     pros::delay(400);
-    chassis.moveToPose(30, 0, 180, 2000, {
+    chassis.moveToPose(27, 5, 180, 2000, {
         .forwards=false,
         .lead=0.5,
         .minSpeed=80,
         .earlyExitRange=1.5
     });
-    chassis.moveToPoint(30,-10,400);
+    chassis.moveToPoint(27,-10,400);
     pros::delay(400);
-    chassis.moveToPoint(30,-9000,700);
+    chassis.moveToPoint(27,-9000,700);
     pros::delay(4000);
     chassis.resetLocalPosition();
     chassis.swingToHeading(270, DriveSide::RIGHT, 380, {

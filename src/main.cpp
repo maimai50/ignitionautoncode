@@ -15,7 +15,7 @@ void on_center_button() {
 	static bool pressed = false;
 	pressed = !pressed;
 	if (pressed) {
-		pros::lcd::set_text(2, "I was pressed!");
+		pros::lcd::set_text(2, "I was pressed! ");
 	} else {
 		pros::lcd::clear_line(2);
 	}
@@ -30,10 +30,19 @@ int selectedAuton=1;
  * to keep execution time for this mode under a few seconds.
  */
 void initialize() {
+	chassis.calibrate();
 	pros::lcd::initialize();
-	pros::lcd::set_text(1, "Hello PROS User!");
+	pros::lcd::set_text(5, "Hello PROS User!");
 
 	pros::lcd::register_btn1_cb(on_center_button);
+
+	pros::Task screenTask([&]() {
+		while (true) {
+			pros::lcd::print(0, "X: &f", chassis.getPose().x);
+			pros::lcd::print(1, "Y: &f", chassis.getPose().y);
+			pros::lcd::print(2, "Theta: &f", chassis.getPose().theta);
+		}
+	});
 }
 
 /**
@@ -66,16 +75,8 @@ void competition_initialize() {}
  * from where it left off.
  */
 void autonomous() {
-	switch (selectedAuton) {
-		case 1:
-			threePlusFour();
-			break;
-		case 2:
-			sevenblockr();
-			break;
-		default:
-			break;
-	}
+	fourblockr();
+	// chassis.moveToPoint(0, 24, 4000);
 }
 
 /**
