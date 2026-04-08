@@ -2,113 +2,134 @@
 #include "configs.h"
 #include "autons/autons.h"
 #include "pros/misc.h"
+#include "autonselector.h"
 
-//auton test code
+LV_IMAGE_DECLARE(sixsevenn);  
+void update_telemetry(lemlib::Chassis &chassis) {
 
-/**
- * A callback function for LLEMU's center button.
- *
- * When this callback is fired, it will toggle line 2 of the LCD text between
- * "I was pressed!" and nothing.
- */
-void on_center_button() {
-	static bool pressed = false;
-	pressed = !pressed;
-	if (pressed) {
-		pros::lcd::set_text(2, "I was pressed! ");
-	} else {
-		pros::lcd::clear_line(2);
-	}
+    //battery thing
+    int battery = pros::battery::get_capacity();
+    char bat_buf[32];
+    snprintf(bat_buf, sizeof(bat_buf), "Battery: %d%%", battery);
+    lv_label_set_text(lbl_battery, bat_buf);
+
+	//selected auton
+    char auton_buf[64];
+    if (selected_auton_id >= 0) {
+        snprintf(auton_buf, sizeof(auton_buf), "Selected: %s", AUTON_NAMES[selected_auton_id]);
+    } else {
+        snprintf(auton_buf, sizeof(auton_buf), "Selected: None (Waiting)");
+    }
+    lv_label_set_text(lbl_status, auton_buf);
+
+	//position things
+    lemlib::Pose pose = chassis.getPose();
+    char pos_buf[64];
+    snprintf(pos_buf, sizeof(pos_buf), "X: %.1f  Y: %.1f  H: %.1f",
+             pose.x, pose.y, pose.theta);
+    lv_label_set_text(lbl_xyh, pos_buf);
+
+ 
+    double l1 = pros::Motor(16).get_temperature();
+    double l2 = pros::Motor(17).get_temperature();
+    double l3 = pros::Motor(18).get_temperature();
+
+    double r1 = pros::Motor(8).get_temperature();
+    double r2 = pros::Motor(9).get_temperature();
+    double r3 = pros::Motor(10).get_temperature();
+
+	double i1  = pros::Motor(19).get_temperature(); //i = intake
+	double i2  = pros::Motor(20).get_temperature();
+
+	// F=C*9/5+32
+    l1 = l1 * 9.0 / 5.0 + 32.0;
+    l2 = l2 * 9.0 / 5.0 + 32.0;
+    l3 = l3 * 9.0 / 5.0 + 32.0;
+
+    r1 = r1 * 9.0 / 5.0 + 32.0;
+    r2 = r2 * 9.0 / 5.0 + 32.0;
+    r3 = r3 * 9.0 / 5.0 + 32.0;
+
+	i1 = i1 * 9.0 / 5.0 + 32.0;
+	i2 = i2 * 9.0 / 5.0 + 32.0;
+
+
+
+
+    // Display
+    char temp_buf[128];
+    snprintf(temp_buf, sizeof(temp_buf),
+        "L1: %.0f L2: %.0f L3: %.0f  R1: %.0f R2: %.0f R3 %.0f\nI1: %.0f I2: %.0f",
+        l1, l2, l3,
+        r1, r2, r3,
+        i1, i2
+    );
+
+    lv_label_set_text(lbl_temps, temp_buf);
 }
 
-int selectedAuton=1;
+static void telemetry_timer_cb(lv_timer_t* timer) {
+    update_telemetry(chassis);
+}
 
-/**
- * Runs initialization code. This occurs as soon as the program is started.
- *
- * All other competition modes are blocked by initialize; it is recommended
- * to keep execution time for this mode under a few seconds.
- */
 void initialize() {
-	chassis.calibrate();
-	pros::lcd::initialize();
-	pros::lcd::set_text(5, "Hello PROS User!");
+    chassis.calibrate();
 
-	pros::lcd::register_btn1_cb(on_center_button);
 
-	pros::Task screenTask([&]() {
-		while (true) {
-			pros::lcd::print(0, "X: &f", chassis.getPose().x);
-			pros::lcd::print(1, "Y: &f", chassis.getPose().y);
-			pros::lcd::print(2, "Theta: &f", chassis.getPose().theta);
-		}
-	});
+    lv_obj_t* scr = lv_screen_active();
+
+    lv_obj_t* img = lv_image_create(scr);
+    
+    lv_image_set_src(img, &sixsevenn); 
+    lv_obj_center(img);
+
+    pros::delay(2000);
+
+    lv_obj_clean(scr);
+
+    create_selector_ui();
+
+    lv_timer_create(telemetry_timer_cb, 200, nullptr);
 }
 
-/**
- * Runs while the robot is in the disabled state of Field Management System or
- * the VEX Competition Switch, following either autonomous or opcontrol. When
- * the robot is enabled, this task will exit.
- */
 void disabled() {}
 
-/**
- * Runs after initialize(), and before autonomous when connected to the Field
- * Management System or the VEX Competition Switch. This is intended for
- * competition-specific initialization routines, such as an autonomous selector
- * on the LCD.
- *
- * This task will exit when the robot is enabled and autonomous or opcontrol
- * starts.
- */
 void competition_initialize() {}
 
-/**
- * Runs the user autonomous code. This function will be started in its own task
- * with the default priority and stack size whenever the robot is enabled via
- * the Field Management System or the VEX Competition Switch in the autonomous
- * mode. Alternatively, this function may be called in initialize or opcontrol
- * for non-competition testing purposes.
- *
- * If the robot is disabled or communications is lost, the autonomous task
- * will be stopped. Re-enabling the robot will restart the task, not re-start it
- * from where it left off.
- */
 void autonomous() {
-	fourblockr();
-	// chassis.moveToPoint(0, 24, 4000);
-}
-
-/**
- * Runs the operator control code. This function will be started in its own task
- * with the default priority and stack size whenever the robot is enabled via
- * the Field Management System or the VEX Competition Switch in the operator
- * control mode.
- *
- * If no competition control is connected, this function will run immediately
- * following initialize().
- *
- * If the robot is disabled or communications is lost, the
- * operator control task will be stopped. Re-enabling the robot will restart the
- * task, not resume it from where it left off.
- */
-void opcontrol() {
-	if (master.get_digital(pros::E_CONTROLLER_DIGITAL_B)) {
-		selectedAuton+=1;
-	}
-	if (master.get_digital(pros::E_CONTROLLER_DIGITAL_A)) {
-		switch (selectedAuton) {
-		case 1:
+	switch(selected_auton_id) {
+		case 0:
 			threePlusFour();
+			break;
+		case 1:
+			fourblockr();
 			break;
 		case 2:
 			sevenblockr();
 			break;
 		case 3:
-			fourblockr();
+			break;
+		case 4:
+			break;
+		case 5:
+		 	break;
+		case 6:
+			break;
+		case 7:
+			break;
+		case 8:
 			break;
 		default:
+			threePlusFour();
 			break;
-		}
+	}
+}
+
+void opcontrol() {
+     while (true) {
+		if (master.get_digital(DIGITAL_UP) && master.get_digital(DIGITAL_DOWN)) {
+            autonomous();
+        }
+        pros::delay(25);
 	}
 }
